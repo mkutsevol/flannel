@@ -42,6 +42,14 @@ KUBE_CROSS_TAG=v1.8.3-1
 IPTABLES_VERSION=1.4.21
 STRONGSWAN_VERSION=5.6.0
 
+create-dockerfiles-$(ARCH):
+	cat dockerfiles/dockerfile.$(ARCH).common dockerfiles/dockerfile.$(ARCH).flannel \
+		> _Dockerfile.$(ARCH).light
+	cat dockerfiles/dockerfile.$(ARCH).common dockerfiles/dockerfile.$(ARCH).ipsec \
+	 	dockerfiles/dockerfile.$(ARCH).flannel > _Dockerfile.$(ARCH).full
+	cat dockerfiles/dockerfile.$(ARCH).common dockerfiles/dockerfile.$(ARCH).ipsec \
+	 	> _Dockerfile.$(ARCH).strongswan
+	
 dist/all-$(ARCH): dist/flanneld-$(ARCH) dist/iptables-$(ARCH) dist/strongswan-$(ARCH) dist/libpthread.so.0-$(ARCH) dist/strongswanlibs-$(ARCH)
 
 dist/flanneld: $(shell find . -type f  -name '*.go')
@@ -179,17 +187,17 @@ dist/iptables-$(ARCH):
 ##
 dist/strongswan-$(ARCH): dist/strongswanlibs-$(ARCH)
 	docker run -e CC=$(CC) -e GOARM=$(GOARM) -e GOARCH=$(ARCH) -it \
-						-v ${PWD}:/go/src/github.com/coreos/flannel:ro \
-						-v ${PWD}/dist/strongswan-$(ARCH):/usr/local/strongswan-$(ARCH) \
+						-v $(CURDIR):/go/src/github.com/coreos/flannel:ro \
+						-v $(CURDIR):/dist/strongswan-$(ARCH):/usr/local/strongswan-$(ARCH) \
 						gcr.io/google_containers/kube-cross:$(KUBE_CROSS_TAG) /bin/bash -c '\
 			apt-get update && apt-get install -y libgmp3-dev &&\
 			curl --sSL https://download.strongswan.org/strongswan-$(STRONGSWAN_VERSION).tar.bz2 | tar -jxv && \
 			cd strongswan-$(STRONGSWAN_VERSION) && \
 			./configure \
 					--prefix=/usr/local/strongswan-$(ARCH) \
-			--enable-static=no \
+					--enable-static=no \
 					--enable-vici \
-			--disable-swanctl \
+					--disable-swanctl \
 					--disable-attr \
 					--disable-constraints \
 					--disable-dnskey \

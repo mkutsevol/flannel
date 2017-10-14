@@ -1,0 +1,6 @@
+RUN mkdir /var/run || echo /var/run exists
+COPY dist/strongswan-$FLANNEL_ARCH  /usr/local/
+COPY dist/libatomic.so.1-$FLANNEL_ARCH /lib/libatomic.so.1
+COPY dist/libdl.so.2-$FLANNEL_ARCH /lib/libdl.so.2
+
+ENTRYPOINT ["/opt/flannel/libexec/ipsec/charon"]
