@@ -43,7 +43,7 @@ type IPTablesRule struct {
 func MasqRules(ipn ip.IP4Net, lease *subnet.Lease) []IPTablesRule {
 	n := ipn.String()
 	sn := lease.Subnet.String()
-
+	subnetFirstIp := lease.Subnet.IP + 1
 	return []IPTablesRule{
 		// This rule makes sure we don't NAT traffic within overlay network (e.g. coming out of docker0)
 		{"nat", "POSTROUTING", []string{"-s", n, "-d", n, "-j", "RETURN"}},
@@ -52,7 +52,8 @@ func MasqRules(ipn ip.IP4Net, lease *subnet.Lease) []IPTablesRule {
 		// Prevent performing Masquerade on external traffic which arrives from a Node that owns the container/pod IP address
 		{"nat", "POSTROUTING", []string{"!", "-s", n, "-d", sn, "-j", "RETURN"}},
 		// Masquerade anything headed towards flannel from the host
-		{"nat", "POSTROUTING", []string{"!", "-s", n, "-d", n, "-j", "MASQUERADE"}},
+		{"nat", "POSTROUTING", []string{"!", "-s", n, "-d", n, "-j", "SNAT",
+			"--to", subnetFirstIp.String()}},
 	}
 }
 
